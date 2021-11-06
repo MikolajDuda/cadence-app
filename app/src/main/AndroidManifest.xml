@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.example.cadence_app">
+    package="com.mobileapps.cadence_app">
+
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.BODY_SENSORS"/>
 
     <application
         android:allowBackup="true"
@@ -8,12 +11,11 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.CadenceApp">
-        <activity
-            android:name=".MainActivity"
-            android:exported="true"
-            android:label="@string/app_name"
-            android:theme="@style/Theme.CadenceApp.NoActionBar">
+        android:theme="@style/AppTheme"
+        android:minSdkVersion="20"
+        android:targetSdkVersion="20"
+        >
+        <activity android:name="com.mobileapps.cadence_app.MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

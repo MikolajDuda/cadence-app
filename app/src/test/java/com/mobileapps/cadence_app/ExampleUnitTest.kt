@@ -1,4 +1,4 @@
-package com.example.cadence_app
+package com.mobileapps.cadence_app
 
 import org.junit.Test
 
