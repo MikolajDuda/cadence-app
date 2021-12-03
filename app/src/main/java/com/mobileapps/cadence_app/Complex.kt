@@ -16,6 +16,6 @@ class Complex(val re: Double, val im: Double) {
         else -> a + " - " + b + 'i'
     }
 
-    private val a = "%1.3f".format(re)
-    private val b = "%1.3f".format(abs(im))
+    val a = "%1.3f".format(re)
+    val b = "%1.3f".format(abs(im))
 }

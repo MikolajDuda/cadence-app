@@ -22,6 +22,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private var mAccelerometer : Sensor ?= null
     private var resume = false
     private var data : Vector<Float> = Vector(0)
+    private var windowSize = 64
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -41,6 +43,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         print("accuracy changed")
     }
 
+
     override fun onSensorChanged(event: SensorEvent?) {
 
         if (event != null && resume) {
@@ -54,17 +57,22 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 findViewById<TextView>(R.id.acc_Z).text = z.toString()
 
                 data.add(calculateDistance(x,y,z))
+//                calculateCadency(data)
 
                 findViewById<TextView>(R.id.length).text = data.size.toString()
 
-                if (data.size == 65) {
-                    for (i:Int in 0 until data.size) { if (data[i] != 0.toFloat()) { println(data[i]) } }
-                    data.removeElementAt(0)
-                    val a = calculateFFT(data)
+                if (data.size > windowSize && data.size % (windowSize/2) == 0 ) {  // power of two (+ one?)
+//                    for (i:Int in 0 until data.size) {
+//                        if (data[i] != 0.toFloat()) {
+//                            println(data[i])
+//                        }
+//                    }
+//                    data.removeElementAt(0)
 //                    for (i:Int in 0 until data.size){
 //                        println(a[i].toString())
 //                    }
-                    findViewById<TextView>(R.id.fft_value).text = a[0].toString()
+                    findViewById<TextView>(R.id.fft_value).text = calculateCadency(data).first.toString()
+
                 }
 
 
@@ -76,9 +84,74 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
     }
 
+    private fun calculateCadency(data : Vector<Float>): Pair<Float, Float> {
+        // Okienkowanie
+        var dataWindow = takeLastElements(data, windowSize)
+
+        val instantCadency = calculateInstantCadency(dataWindow)
+
+        val averageCadency = calculateAverageCadency(dataWindow)
+
+        // Note: jeżeli 1 extremum to zwróć 0 - jedzeisz za wolno żeby zmierzyć
+        return Pair(instantCadency, averageCadency)
+    }
+
+
+    private fun calculateInstantCadency(data : Vector<Float>) :  Float{
+        /* TODO: funkcja, ktora okienkuje fft i liczy wszystko:
+            - FFT
+            - okieno / filtrowanie
+            - wypluwanie informacji o kadencji sredniej do tej pory i chwilowej
+         */
+        // FFT
+        val fft = calculateFFT(data)
+
+        val fftModules = getModuleVector(fft)
+        // Filtracja pasmowo-przepustowa
+
+        // Obliczenie maximum
+
+        var extremes = getPeriod(fftModules)
+
+
+        return extremes
+    }
+
+    private fun getPeriod(data : Vector<Float>) : Float {
+        //TODO: wyliczenie ilosci ekstremow
+        // f = il-ekstr/2 / windowSize * Sensor_Freq
+        var counter = 0
+        for (i: Int in 1 until data.size - 1) {
+            if (data[i] > data[i-1] && data[i] > data[i+1])
+                counter++
+            if (data[i] < data[i - 1] && data[i] < data[i + 1]) {
+                counter++
+            }
+        }
+        return counter/2.0f     // Mocno przybliżona wartość okresu
+    }
+
+    private fun takeLastElements(data:Vector<Float>, range:Int ) : Vector<Float> {
+        var tmp : Vector<Float> = Vector(0)
+        for (i:Int in 0 until range)
+            tmp.add(data[data.size - range + i])
+        return tmp
+    }
+
+    private fun calculateAverageCadency(data : Vector<Float> ) : Float {
+
+        return 20.0f
+
+    }
+
     // d(P1,P2) = (x2 x1)2 + (y2 y1)2 + (z2 z1)2.
     private fun calculateDistance(x : Float, y : Float, z : Float) : Float {
         return sqrt(x.toDouble().pow(2.0) + y.toDouble().pow(2.0) + z.toDouble().pow(2.0)).toFloat()
+    }
+
+    // d(P1,P2) = (x2 x1)2 + (y2 y1)2
+    private fun calculateDistance2D(x : Float, y : Float) : Float {
+        return sqrt(x.toDouble().pow(2.0) + y.toDouble().pow(2.0)).toFloat()
     }
 
     private fun calculateFFT(data : Vector<Float>) : Array<Complex> {
@@ -89,6 +162,15 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         }
 
         return FFT.fft(arrComplex)
+    }
+
+    private fun getModuleVector(data : Array<Complex>) : Vector<Float> {
+        val moduleVector = Vector<Float>(data.size)
+
+        for (element: Complex in data) {
+            moduleVector.add(calculateDistance2D(element.a.toFloat(), element.b.toFloat()))
+        }
+        return moduleVector
     }
 
     override fun onResume() {
