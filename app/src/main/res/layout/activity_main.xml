@@ -54,75 +54,6 @@
                 android:layout_height="wrap_content"
                 android:layout_column="1"
                 android:gravity="center"
-                android:text="Accelerometer X"
-                android:textSize="18sp" />
-
-            <TextView
-                android:id="@+id/acc_X"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="2"
-                android:gravity="center"
-                android:text="0"
-                android:textAlignment="center"
-                android:textSize="20sp" />
-        </TableRow>
-
-        <TableRow
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <TextView
-                android:layout_width="100dp"
-                android:layout_height="wrap_content"
-                android:layout_column="1"
-                android:gravity="center"
-                android:text="Accelerometer Y"
-                android:textSize="18sp" />
-
-            <TextView
-                android:id="@+id/acc_Y"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="2"
-                android:text="0"
-                android:gravity="center"
-                android:textAlignment="center"
-                android:textSize="20sp" />
-        </TableRow>
-
-        <TableRow
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <TextView
-                android:layout_width="100dp"
-                android:layout_height="wrap_content"
-                android:layout_column="1"
-                android:gravity="center"
-                android:text="Accelerometer Z"
-                android:textSize="18sp" />
-
-            <TextView
-                android:id="@+id/acc_Z"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_column="2"
-                android:text="0"
-                android:gravity="center"
-                android:textAlignment="center"
-                android:textSize="20sp" />
-        </TableRow>
-
-        <TableRow
-            android:layout_width="match_parent"
-            android:layout_height="match_parent">
-
-            <TextView
-                android:layout_width="100dp"
-                android:layout_height="wrap_content"
-                android:layout_column="1"
-                android:gravity="center"
                 android:text="Data length"
                 android:textSize="18sp" />
 
@@ -146,11 +77,11 @@
                 android:layout_height="wrap_content"
                 android:layout_column="1"
                 android:gravity="center"
-                android:text="FFT"
+                android:text="Average candence"
                 android:textSize="18sp" />
 
             <TextView
-                android:id="@+id/fft_value"
+                android:id="@+id/avg_cadency"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_column="2"
@@ -213,10 +144,10 @@
         app:layout_constraintTop_toTopOf="parent" />
 
     <EditText
-        android:id="@+id/cadenceValue"
+        android:id="@+id/cadence_value"
         style="@style/Widget.AppCompat.AutoCompleteTextView"
-        android:layout_width="70dp"
-        android:layout_height="89dp"
+        android:layout_width="300dp"
+        android:layout_height="70dp"
         android:ems="10"
         android:gravity="center"
         android:inputType="number"
@@ -228,6 +159,20 @@
         app:layout_constraintHorizontal_bias="0.5"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/tableLayout" />
+
+    <TextView
+        android:layout_width="141dp"
+        android:layout_height="32dp"
+        android:layout_column="1"
+        android:layout_marginBottom="116dp"
+        android:gravity="center"
+        android:text="Cadence"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/cadenceValue" />
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

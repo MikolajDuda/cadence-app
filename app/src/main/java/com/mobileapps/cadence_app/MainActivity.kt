@@ -8,7 +8,6 @@ import android.hardware.SensorEventListener
 import android.hardware.SensorManager
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.os.Handler
 import android.view.View
 import android.view.Window
 import android.view.WindowManager
@@ -22,8 +21,16 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     private var mAccelerometer : Sensor ?= null
     private var resume = false
     private var data : Vector<Float> = Vector(0)
-    private var windowSize = 64
-
+    private var cadenceVector : Vector<Float> = Vector(0)
+    private var windowSize = 128
+    private var seconds60 = 60
+    private var samplingPeriod = 0.03f
+    private var minCadence = 20f
+    private var maxCadence = 120f
+    // e.g. mSID = 120 / 60 * 0.05
+    // maxCadence  / 60s => 2Hz,
+    private var minSampleIndexDistance = seconds60 / maxCadence / samplingPeriod
+    private var maxSampleIndexDistance = seconds60 / minCadence / samplingPeriod
 
     override fun onCreate(savedInstanceState: Bundle?) {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -37,6 +44,10 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
         mSensorManager = getSystemService(Context.SENSOR_SERVICE) as SensorManager
         mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
+
+        mSensorManager.registerListener(this,
+            mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+            (samplingPeriod * 1000000).toInt());
     }
 
     override fun onAccuracyChanged(sensor: Sensor?, accuracy: Int) {
@@ -52,16 +63,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
                 var y = event.values[1]
                 var z = event.values[2]
 
-                findViewById<TextView>(R.id.acc_X).text = x.toString()
-                findViewById<TextView>(R.id.acc_Y).text = y.toString()
-                findViewById<TextView>(R.id.acc_Z).text = z.toString()
-
                 data.add(calculateDistance(x,y,z))
 //                calculateCadency(data)
 
                 findViewById<TextView>(R.id.length).text = data.size.toString()
 
-                if (data.size > windowSize && data.size % (windowSize/2) == 0 ) {  // power of two (+ one?)
+                if (data.size >= windowSize && data.size % (windowSize) == 0 ) {  // power of two
 //                    for (i:Int in 0 until data.size) {
 //                        if (data[i] != 0.toFloat()) {
 //                            println(data[i])
@@ -71,8 +78,9 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 //                    for (i:Int in 0 until data.size){
 //                        println(a[i].toString())
 //                    }
-                    findViewById<TextView>(R.id.fft_value).text = calculateCadency(data).first.toString()
-
+                    val result = calculateCadency(data)
+                    findViewById<TextView>(R.id.cadence_value).text = result.first.toString()
+                    findViewById<TextView>(R.id.avg_cadency).text = result.second.toString()
                 }
 
 
@@ -90,7 +98,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
 
         val instantCadency = calculateInstantCadency(dataWindow)
 
-        val averageCadency = calculateAverageCadency(dataWindow)
+        val averageCadency = calculateAverageCadency(instantCadency)
 
         // Note: jeżeli 1 extremum to zwróć 0 - jedzeisz za wolno żeby zmierzyć
         return Pair(instantCadency, averageCadency)
@@ -105,30 +113,42 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
          */
         // FFT
         val fft = calculateFFT(data)
-
         val fftModules = getModuleVector(fft)
+
         // Filtracja pasmowo-przepustowa
 
         // Obliczenie maximum
+        var extremes = getFrequency(fftModules)
 
-        var extremes = getPeriod(fftModules)
-
-
-        return extremes
+        return extremes * seconds60 //* samplingPeriod    // Hz * 60 => cadence
     }
 
-    private fun getPeriod(data : Vector<Float>) : Float {
+    /**
+     *
+     */
+
+    private fun getFrequency(data : Vector<Float>) : Float {
         //TODO: wyliczenie ilosci ekstremow
         // f = il-ekstr/2 / windowSize * Sensor_Freq
-        var counter = 0
+        var counter = 0f
+        var lastExtremeIndex = 0
+        var highest = 0f;
         for (i: Int in 1 until data.size - 1) {
-            if (data[i] > data[i-1] && data[i] > data[i+1])
-                counter++
-            if (data[i] < data[i - 1] && data[i] < data[i + 1]) {
-                counter++
+            if (data[i] > data[i-1] && data[i] > data[i+1] && data[i] > highest) {
+//                if ((i - lastExtremeIndex) > minSampleIndexDistance && (i - lastExtremeIndex) < maxSampleIndexDistance) {
+                    counter = i * 1/samplingPeriod / windowSize
+                highest = data[i]
+//                    lastExtremeIndex = i
+//                }
             }
+//            if (data[i] < data[i - 1] && data[i] < data[i + 1]) {
+////                if ((i - lastExtremeIndex) > minSampleIndexDistance && (i - lastExtremeIndex) < maxSampleIndexDistance) {
+//                    counter++
+////                    lastExtremeIndex = i
+////                }
+//            }
         }
-        return counter/2.0f     // Mocno przybliżona wartość okresu
+        return counter.toFloat()     // Mocno przybliżona wartość okresu
     }
 
     private fun takeLastElements(data:Vector<Float>, range:Int ) : Vector<Float> {
@@ -138,10 +158,12 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         return tmp
     }
 
-    private fun calculateAverageCadency(data : Vector<Float> ) : Float {
+    private fun calculateAverageCadency(data: Float): Float {
 
-        return 20.0f
+        cadenceVector.add(data)
+        var sum = cadenceVector.sum()
 
+        return sum / cadenceVector.size //* samplingPeriod    // Hz * 60 => cadence
     }
 
     // d(P1,P2) = (x2 x1)2 + (y2 y1)2 + (z2 z1)2.
@@ -168,7 +190,8 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
         val moduleVector = Vector<Float>(data.size)
 
         for (element: Complex in data) {
-            moduleVector.add(calculateDistance2D(element.a.toFloat(), element.b.toFloat()))
+//            moduleVector.add(calculateDistance2D(element.a.toFloat(), element.b.toFloat()))
+            moduleVector.add(element.a.toFloat())
         }
         return moduleVector
     }
@@ -181,6 +204,7 @@ class MainActivity : AppCompatActivity(), SensorEventListener {
     override fun onPause() {
         super.onPause()
         mSensorManager.unregisterListener(this)
+
     }
 
     fun resumeReading(view: View) {
